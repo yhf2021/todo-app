@@ -1,6 +1,18 @@
 const TodoApp = (function() {
   let _todos = [];
 
+  function priorityWeight(p) {
+    if (p === 'high') return 0;
+    if (p === 'medium') return 1;
+    return 2;
+  }
+
+  function sort() {
+    _todos.sort(function(a, b) {
+      return priorityWeight(a.priority) - priorityWeight(b.priority);
+    });
+  }
+
   function init() {
     _todos = Storage.load();
     let migrated = false;
@@ -11,6 +23,7 @@ const TodoApp = (function() {
       }
       return t;
     });
+    sort();
     if (migrated) Storage.save(_todos);
   }
 
@@ -20,6 +33,7 @@ const TodoApp = (function() {
 
   function add(text, priority) {
     _todos.push({ text, done: false, priority: priority || 'medium' });
+    sort();
     Storage.save(_todos);
   }
 
