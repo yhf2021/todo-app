@@ -24,6 +24,11 @@ const TodoApp = (function() {
     Storage.save(_todos);
   }
 
+  function clearDone() {
+    _todos = _todos.filter(t => !t.done);
+    Storage.save(_todos);
+  }
+
   function getStats() {
     const total = _todos.length;
     const done = _todos.filter(t => t.done).length;
@@ -31,5 +36,5 @@ const TodoApp = (function() {
     return { total, pending, done };
   }
 
-  return { init, getAll, add, toggle, remove, getStats };
+  return { init, getAll, add, toggle, remove, clearDone, getStats };
 })();

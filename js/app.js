@@ -13,6 +13,7 @@ const App = (function() {
 
     els.pendingCount.textContent = stats.pending;
     els.doneCount.textContent = stats.done;
+    els.clearBtn.classList.toggle('show', stats.done > 0);
 
     if (todos.length === 0) {
       els.list.innerHTML = '<li class="empty-msg">暂无待办事项</li>';
@@ -59,6 +60,11 @@ const App = (function() {
     els.input.focus();
   }
 
+  function handleClearDone() {
+    TodoApp.clearDone();
+    render();
+  }
+
   function handleListClick(e) {
     const checkbox = e.target.closest('input[type="checkbox"]');
     const delBtn = e.target.closest('.del-btn');
@@ -79,6 +85,7 @@ const App = (function() {
     els.pendingCount = document.getElementById('pendingCount');
     els.doneCount = document.getElementById('doneCount');
     els.hint = document.getElementById('hint');
+    els.clearBtn = document.getElementById('clearBtn');
 
     TodoApp.init();
 
@@ -88,6 +95,7 @@ const App = (function() {
     });
     els.input.addEventListener('input', hideHint);
     els.list.addEventListener('click', handleListClick);
+    els.clearBtn.addEventListener('click', handleClearDone);
 
     render();
   }
