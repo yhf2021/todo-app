@@ -28,9 +28,31 @@ const App = (function() {
     `).join('');
   }
 
+  let hintTimer = null;
+
+  function showHint() {
+    els.hint.classList.add('show');
+    els.input.classList.add('error');
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(function() {
+      els.hint.classList.remove('show');
+      els.input.classList.remove('error');
+    }, 2000);
+  }
+
+  function hideHint() {
+    els.hint.classList.remove('show');
+    els.input.classList.remove('error');
+    clearTimeout(hintTimer);
+  }
+
   function handleAdd() {
     const text = els.input.value.trim();
-    if (!text) return;
+    if (!text) {
+      showHint();
+      return;
+    }
+    hideHint();
     TodoApp.add(text);
     render();
     els.input.value = '';
@@ -56,6 +78,7 @@ const App = (function() {
     els.list = document.getElementById('todoList');
     els.pendingCount = document.getElementById('pendingCount');
     els.doneCount = document.getElementById('doneCount');
+    els.hint = document.getElementById('hint');
 
     TodoApp.init();
 
@@ -63,6 +86,7 @@ const App = (function() {
     els.input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') handleAdd();
     });
+    els.input.addEventListener('input', hideHint);
     els.list.addEventListener('click', handleListClick);
 
     render();

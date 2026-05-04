@@ -62,6 +62,21 @@ h1 {
 
 .input-row button:active { transform: scale(0.96); }
 
+.hint {
+  font-size: 13px;
+  color: #e05050;
+  margin: -12px 0 12px 2px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.hint.show { opacity: 1; }
+
+.input-row input.error {
+  border-color: #e05050;
+  background: #fff6f6;
+}
+
 .stats {
   display: flex;
   justify-content: space-between;
