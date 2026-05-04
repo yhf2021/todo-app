@@ -14,182 +14,192 @@
 
 ---
 
-## 项目文件
+## 项目结构
 
-- `index.html` — 唯一的文件，HTML / CSS / JavaScript 全写在一起
-- `.gitignore` — 告诉 Git 哪些文件不需要管
+```
+index.html          页面骨架（仅 HTML，没有样式和脚本）
+css/
+  style.css         样式（颜色、圆角、阴影、响应式）
+js/
+  storage.js        数据层（localStorage 读写）
+  todo.js           业务层（待办事项的增删改查）
+  app.js            视图层（渲染页面、事件绑定）
+.gitignore          Git 忽略规则
+README.md           本文件
+```
 
 ---
 
 ## 代码说明（小白友好版）
 
-### 整体结构
+### index.html — 页面骨架
 
-整个应用只有一个 `index.html`，从上到下分三大块：
-
-### 1. HTML（页面骨架）— 第 135~147 行
-
-这部分定义了页面上能看到的所有元素：
+只包含 HTML 标签，没有任何样式和 JavaScript。通过下面两行引入外部文件：
 
 ```html
-<!-- 输入框 + 添加按钮 — 第 138~141 行 -->
-<div class="input-row">
-  <input id="input" type="text" placeholder="输入新的待办..." autofocus>
-  <button id="addBtn">添加</button>
-</div>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="css/style.css">
 
-<!-- 统计数量 — 第 142~145 行 -->
-<div class="stats">
-  <span>待完成 <span class="num pending" id="pendingCount">0</span></span>
-  <span>已完成 <span class="num done" id="doneCount">0</span></span>
-</div>
-
-<!-- 待办列表 — 第 146 行 -->
-<ul class="todo-list" id="todoList"></ul>
+<!-- 引入 JavaScript，顺序不能乱 -->
+<script src="js/storage.js"></script>
+<script src="js/todo.js"></script>
+<script src="js/app.js"></script>
 ```
 
-| 标签 | 作用 |
-|------|------|
-| `<input id="input">` | 输入框，用来打字 |
-| `<button id="addBtn">` | 添加按钮 |
-| `<ul id="todoList">` | 列表容器，待办事项会动态插入到这里面 |
-| `<span id="pendingCount">` | 显示还剩多少条没完成 |
-| `<span id="doneCount">` | 显示已完成多少条 |
+页面上的关键元素：
 
-### 2. CSS（页面美颜）— 第 7~133 行
+| 标签 | id | 作用 |
+|------|----|------|
+| `<input>` | `input` | 输入框，用来打字 |
+| `<button>` | `addBtn` | 添加按钮 |
+| `<ul>` | `todoList` | 待办列表容器 |
+| `<span>` | `pendingCount` | 显示待完成数量 |
+| `<span>` | `doneCount` | 显示已完成数量 |
 
-整段 `<style>` 标签里的代码都是 CSS。
+---
 
+### css/style.css — 样式文件
+
+```css
+/* 蓝色渐变背景 */
+body { background: linear-gradient(135deg, #e0f0ff 0%, #b8daff 100%); }
+
+/* 白色卡片：圆角 + 阴影 + 最大宽度限制（响应式） */
+.container {
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(30, 90, 180, 0.15);
+  max-width: 520px;
+}
+
+/* 蓝色主色调 */
+.input-row button { background: #4a8cf7; }        /* 按钮蓝色 */
+.input-row input { border-color: #d0e2ff; }       /* 输入框蓝色边框 */
+.input-row input:focus { border-color: #4a8cf7; } /* 聚焦时变深蓝 */
+
+/* 已完成：删除线 + 灰色 */
+.todo-item .text.done {
+  text-decoration: line-through;
+  color: #9aafcf;
+}
+
+/* 删除按钮：默认浅灰，悬停变红 */
+.todo-item .del-btn:hover { color: #e05050; background: #ffe8e8; }
 ```
-第 7~133 行     全部 CSS 代码
-```
 
-关键样式说明：
+每个文件都在做一件事，方便以后修改颜色或样式。
 
-| 代码位置 | 做了什么 |
-|---------|---------|
-| `第 10~12 行` `background: linear-gradient(...)` | 页面背景蓝色渐变 |
-| `第 18~25 行` `.container` | 白色卡片，`border-radius` 圆角，`box-shadow` 阴影 |
-| `第 24 行` `max-width: 520px` | 限制最大宽度，手机/电脑都能看（响应式） |
-| `第 38~46 行` `.input-row input` | 输入框：圆角、蓝色边框 |
-| `第 48~59 行` `.input-row button` | 添加按钮：蓝色背景、圆角 |
-| `第 85~94 行` `.todo-item` | 每行待办：圆角、浅蓝背景 |
-| `第 110~113 行` `.text.done` | 已完成文字的删除线 + 灰色 |
+---
 
-### 3. JavaScript（让页面动起来）— 第 148~226 行
+### js/storage.js — 数据层
 
-#### 数据存在哪？— 第 149、158~165 行
-
-数据存在浏览器的 `localStorage` 里（浏览器的"小仓库"，关掉页面也不会丢）。
+负责和浏览器的"本地存储"（localStorage）打交道。只有两个函数：
 
 ```javascript
-// 第 149 行
-const STORAGE_KEY = 'todos';
+const Storage = (function() {
+  const KEY = 'todos';
 
-// 第 158~161 行 — 打开页面时从仓库取数据
-function loadTodos() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
-}
+  // 从 localStorage 读取数据，没有就返回空数组
+  function load() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
 
-// 第 163~165 行 — 数据变化时存回仓库
-function saveTodos() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-}
+  // 把数据存进 localStorage
+  function save(todos) {
+    localStorage.setItem(KEY, JSON.stringify(todos));
+  }
+})();
 ```
 
-#### 数据长啥样？— 第 150 行
+你可以把 `localStorage` 想象成浏览器自带的一个"小仓库"，关掉页面数据也不会丢。
 
-每一条待办是一个"对象"，所有待办放在一个"数组"里：
+---
+
+### js/todo.js — 业务层
+
+负责所有"待办事项"相关的逻辑。数据存在内部的 `_todos` 数组里：
 
 ```javascript
-// 第 150 行
-let todos = loadTodos();   // 开始时: [] 空数组
-                            // 添加后: [{ text: "买牛奶", done: false }, ...]
+const TodoApp = (function() {
+  let _todos = [];   // 内部数据，外面不能直接改
+
+  function init()          { _todos = Storage.load(); }           // 初始化时从仓库取数据
+  function getAll()        { return _todos; }                     // 获取所有待办
+  function add(text)       { _todos.push({ text, done: false }); Storage.save(_todos); }  // 添加
+  function toggle(index)   { _todos[index].done = !_todos[index].done; Storage.save(_todos); }  // 切换完成
+  function remove(index)   { _todos.splice(index, 1); Storage.save(_todos); }              // 删除
+  function getStats()      { /* 统计已完成/未完成数量 */ }
+})();
 ```
 
-- `text` — 任务的内容
-- `done` — 是否已完成（`false` 没做完，`true` 做完了）
-
-#### 三个核心操作 — 第 193~213 行
+每一条待办的数据格式：
 
 ```javascript
-// 第 193~201 行 — 添加
-function addTodo() {
-  const text = input.value.trim();
-  if (!text) return;
-  todos.push({ text, done: false });  // 塞进数组
-  saveTodos();                         // 存仓库
-  render();                            // 刷新页面
-  input.value = '';                    // 清空输入框
-  input.focus();                       // 光标回到输入框
-}
-
-// 第 203~207 行 — 切换完成状态
-function toggleTodo(index) {
-  todos[index].done = !todos[index].done;  // true→false, false→true
-  saveTodos();
-  render();
-}
-
-// 第 209~213 行 — 删除
-function deleteTodo(index) {
-  todos.splice(index, 1);  // 从数组里移除这一项
-  saveTodos();
-  render();
-}
+{ text: "买牛奶", done: false }
 ```
 
-#### 渲染 render() — 第 167~185 行
+- `text` — 任务内容
+- `done` — 是否已完成（`false` = 没做完，`true` = 做完了）
+
+---
+
+### js/app.js — 视图层
+
+负责操作页面上的东西（DOM），让页面和数据保持同步。
+
+核心是 **render** 函数：
 
 ```javascript
 function render() {
-  // 第 168~171 行 — 统计数量，更新到顶部显示
-  const pending = todos.filter(t => !t.done).length;
-  const done = todos.filter(t => t.done).length;
-  pendingCount.textContent = pending;
-  doneCount.textContent = done;
+  const todos = TodoApp.getAll();   // 从业务层拿数据
+  const stats = TodoApp.getStats();
 
-  // 第 173~176 行 — 如果数组空，显示"暂无"
+  // 1. 更新统计数字
+  els.pendingCount.textContent = stats.pending;
+  els.doneCount.textContent = stats.done;
+
+  // 2. 如果没数据，显示"暂无待办事项"
   if (todos.length === 0) {
-    list.innerHTML = '<li class="empty-msg">暂无待办事项</li>';
+    els.list.innerHTML = '<li class="empty-msg">暂无待办事项</li>';
     return;
   }
 
-  // 第 178~184 行 — 根据数组内容生成列表 HTML
-  list.innerHTML = todos.map((t, i) => `
-    <li class="todo-item">
-      <input type="checkbox" ${t.done ? 'checked' : ''} data-index="${i}">
-      <span class="text${t.done ? ' done' : ''}">${escapeHtml(t.text)}</span>
-      <button class="del-btn" data-index="${i}" title="删除">&times;</button>
-    </li>
-  `).join('');
+  // 3. 有数据，根据数组内容重新生成列表 HTML
+  els.list.innerHTML = todos.map((t, i) => `...`).join('');
 }
 ```
 
-每次添加/切换/删除都会调用 `render()`，让页面和数据保持一致。
-
-#### 事件监听 — 第 215~223 行
+事件绑定：
 
 ```javascript
-// 第 215 行 — 点击"添加"按钮
-addBtn.addEventListener('click', addTodo);
-
-// 第 216 行 — 在输入框按回车
-input.addEventListener('keydown', e => {
-  if (e.key === 'Enter') addTodo();
-});
-
-// 第 218~223 行 — 事件委托：在列表上统一监听点击
-list.addEventListener('click', e => {
-  const checkbox = e.target.closest('input[type="checkbox"]');
-  const delBtn = e.target.closest('.del-btn');
-  if (checkbox) toggleTodo(+checkbox.dataset.index);
-  if (delBtn) deleteTodo(+delBtn.dataset.index);
-});
+els.addBtn.addEventListener('click', handleAdd);              // 点击添加按钮
+els.input.addEventListener('keydown', function(e) { ... });   // 按回车
+els.list.addEventListener('click', handleListClick);          // 点击复选框/删除按钮
 ```
 
-"事件委托"的意思是：不在每个复选框/删除按钮上单独绑监听，只在 `<ul>` 上绑一个，点的时候判断点的是哪个元素。
+"事件委托"：只在 `<ul>` 上监听一次点击，判断点的是复选框还是删除按钮。
+
+---
+
+### 三个文件的关系（数据流）
+
+```
+用户操作（点击/输入）
+       │
+       ▼
+  app.js（视图层）
+   ── 调用 TodoApp.xxx() ──►  todo.js（业务层）
+                                ── 修改 _todos 数组
+                                ── 调用 Storage.save() ──►  storage.js（数据层）
+                                                              ── 写入 localStorage
+  app.js（视图层）
+   ── render() 刷新页面 ◄── 取自 TodoApp.getAll()
+```
+
+简单说：**用户操作 → 改数据 → 存仓库 → 刷新页面**。
 
 ---
 
@@ -197,9 +207,10 @@ list.addEventListener('click', e => {
 
 | 想改什么 | 在哪里改 |
 |---------|---------|
-| 标题文字 | 找到 `<h1>` 标签 |
-| 主题颜色 | 搜索 `#4a8cf7`（蓝色主色），替换成喜欢的颜色 |
-| 本地存储的 key | 找到 `STORAGE_KEY = 'todos'` 改成别的名字 |
+| 标题文字 | `index.html` 中的 `<h1>` 标签 |
+| 主题颜色 | `css/style.css` 中搜索 `#4a8cf7` |
+| localStorage 的 key | `js/storage.js` 中的 `KEY` 变量 |
+| 添加新功能 | 先在 `js/todo.js` 加函数，再到 `js/app.js` 调用 |
 
 ---
 
@@ -207,12 +218,16 @@ list.addEventListener('click', e => {
 
 **Q: 换浏览器或清空缓存后数据会丢吗？**
 
-A: 会。`localStorage` 是浏览器自带的仓库，换浏览器相当于换了个仓库。清空浏览器数据也会清空。
+A: 会。`localStorage` 是浏览器自带的仓库，换浏览器相当于换了个仓库。
 
 **Q: 如何在手机上看？**
 
-A: 把 `index.html` 传到手机上，用浏览器打开即可。
+A: 把 `index.html` 整个文件夹传到手机上，用浏览器打开即可。
 
 **Q: 可以两个人共享待办列表吗？**
 
-A: 不能。这是一个纯前端页面，数据只存在你自己的浏览器里。如果需要多人共享，需要加上后端服务器和数据库。
+A: 不能。这是纯前端页面。如果需要多人共享，需要加后端服务器。
+
+**Q: JS 文件的加载顺序为什么重要？**
+
+A: `todo.js` 依赖 `storage.js`（用了 `Storage`），`app.js` 依赖 `todo.js`（用了 `TodoApp`）。所以加载顺序必须是 storage → todo → app。
