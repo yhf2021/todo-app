@@ -11,7 +11,12 @@
     <h1>✨ 我的待办清单</h1>
     <div class="input-row">
       <input id="input" type="text" placeholder="今天要做什么？" autofocus>
-      <button id="addBtn">➕ 添加任务</button>
+      <select id="prioritySelect">
+        <option value="high">🔴 高</option>
+        <option value="medium" selected>🟡 中</option>
+        <option value="low">🟢 低</option>
+      </select>
+      <button id="addBtn">➕ 添加</button>
     </div>
     <div class="hint" id="hint">请输入待办内容</div>
     <div class="stats">
@@ -19,7 +24,10 @@
       <span>已完成 <span class="num done" id="doneCount">0</span></span>
     </div>
     <ul class="todo-list" id="todoList"></ul>
-    <button class="clear-btn" id="clearBtn">🗑️ 清空已完成</button>
+    <div class="action-bar">
+      <button class="clear-btn" id="clearBtn">🗑️ 清空已完成</button>
+      <button class="clear-all-btn" id="clearAllBtn">清空全部</button>
+    </div>
   </div>
 
   <script src="js/storage.js"></script>

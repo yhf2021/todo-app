@@ -1,35 +1,62 @@
 const App = (function() {
-  let els = {};
+  var els = {};
+  var editingIndex = null;
+  var hintTimer = null;
 
   function escapeHtml(str) {
-    const d = document.createElement('div');
+    var d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
   }
 
   function render() {
-    const todos = TodoApp.getAll();
-    const stats = TodoApp.getStats();
+    var todos = TodoApp.getAll();
+    var stats = TodoApp.getStats();
 
     els.pendingCount.textContent = stats.pending;
     els.doneCount.textContent = stats.done;
+
     els.clearBtn.classList.toggle('show', stats.done > 0);
+    els.clearAllBtn.classList.toggle('show', todos.length > 0);
 
     if (todos.length === 0) {
-      els.list.innerHTML = '<li class="empty-msg">暂无待办事项</li>';
+      els.list.innerHTML =
+        '<li class="empty-msg">' +
+          '<span class="icon">🎉</span>' +
+          '今天还没有任务哦～<br>快来添加第一条吧！' +
+        '</li>';
       return;
     }
 
-    els.list.innerHTML = todos.map((t, i) => `
-      <li class="todo-item">
-        <input type="checkbox" ${t.done ? 'checked' : ''} data-index="${i}">
-        <span class="text${t.done ? ' done' : ''}">${escapeHtml(t.text)}</span>
-        <button class="del-btn" data-index="${i}" title="删除">&times;</button>
-      </li>
-    `).join('');
-  }
+    var html = '';
+    for (var i = 0; i < todos.length; i++) {
+      var t = todos[i];
+      var isEditing = (editingIndex === i);
+      var priority = t.priority || 'medium';
 
-  let hintTimer = null;
+      html += '<li class="todo-item priority-' + priority + (isEditing ? ' editing' : '') + '">';
+      html += '<input type="checkbox" ' + (t.done ? 'checked' : '') + ' data-index="' + i + '">';
+
+      if (isEditing) {
+        html += '<input class="edit-input" value="' + escapeHtml(t.text) + '" data-index="' + i + '">';
+      } else {
+        html += '<span class="text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</span>';
+      }
+
+      html += '<button class="edit-btn" data-index="' + i + '" title="编辑">✏️</button>';
+      html += '<button class="del-btn" data-index="' + i + '" title="删除">&times;</button>';
+      html += '</li>';
+    }
+    els.list.innerHTML = html;
+
+    if (editingIndex !== null) {
+      var editInput = els.list.querySelector('.edit-input');
+      if (editInput) {
+        editInput.focus();
+        editInput.setSelectionRange(editInput.value.length, editInput.value.length);
+      }
+    }
+  }
 
   function showHint() {
     els.hint.classList.add('show');
@@ -48,16 +75,36 @@ const App = (function() {
   }
 
   function handleAdd() {
-    const text = els.input.value.trim();
+    var text = els.input.value.trim();
     if (!text) {
       showHint();
       return;
     }
     hideHint();
-    TodoApp.add(text);
+    TodoApp.add(text, els.prioritySelect.value);
     render();
     els.input.value = '';
     els.input.focus();
+  }
+
+  function handleEditClick(index) {
+    if (editingIndex === index) return;
+    editingIndex = index;
+    render();
+  }
+
+  function saveEdit(index, text) {
+    text = text.trim();
+    if (text) {
+      TodoApp.update(index, { text: text });
+    }
+    editingIndex = null;
+    render();
+  }
+
+  function cancelEdit() {
+    editingIndex = null;
+    render();
   }
 
   function handleClearDone() {
@@ -65,16 +112,53 @@ const App = (function() {
     render();
   }
 
+  function handleClearAll() {
+    if (confirm('确定要清空全部待办事项吗？此操作不可撤销。')) {
+      TodoApp.clearAll();
+      editingIndex = null;
+      render();
+    }
+  }
+
   function handleListClick(e) {
-    const checkbox = e.target.closest('input[type="checkbox"]');
-    const delBtn = e.target.closest('.del-btn');
-    if (checkbox) {
+    var checkbox = e.target.closest('input[type="checkbox"]');
+    var delBtn = e.target.closest('.del-btn');
+    var editBtn = e.target.closest('.edit-btn');
+
+    if (checkbox && editingIndex === null) {
       TodoApp.toggle(+checkbox.dataset.index);
       render();
     }
+
     if (delBtn) {
-      TodoApp.remove(+delBtn.dataset.index);
+      var idx = +delBtn.dataset.index;
+      TodoApp.remove(idx);
+      if (editingIndex !== null) {
+        if (editingIndex === idx) {
+          editingIndex = null;
+        } else if (editingIndex > idx) {
+          editingIndex--;
+        }
+      }
       render();
+    }
+
+    if (editBtn) {
+      handleEditClick(+editBtn.dataset.index);
+    }
+  }
+
+  function handleListKeydown(e) {
+    if (editingIndex === null) return;
+    var editInput = e.target.closest('.edit-input');
+    if (!editInput) return;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEdit(editingIndex, editInput.value);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
     }
   }
 
@@ -86,6 +170,8 @@ const App = (function() {
     els.doneCount = document.getElementById('doneCount');
     els.hint = document.getElementById('hint');
     els.clearBtn = document.getElementById('clearBtn');
+    els.clearAllBtn = document.getElementById('clearAllBtn');
+    els.prioritySelect = document.getElementById('prioritySelect');
 
     TodoApp.init();
 
@@ -95,12 +181,14 @@ const App = (function() {
     });
     els.input.addEventListener('input', hideHint);
     els.list.addEventListener('click', handleListClick);
+    els.list.addEventListener('keydown', handleListKeydown);
     els.clearBtn.addEventListener('click', handleClearDone);
+    els.clearAllBtn.addEventListener('click', handleClearAll);
 
     render();
   }
 
-  return { init };
+  return { init: init };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);
