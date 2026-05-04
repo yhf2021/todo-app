@@ -25,80 +25,171 @@
 
 ### 整体结构
 
-整个应用就是一个 `index.html`，分成三大块：
+整个应用只有一个 `index.html`，从上到下分三大块：
 
-### 1. HTML（页面骨架）
+### 1. HTML（页面骨架）— 第 135~147 行
 
-- `<input>` — 输入框，用来打字
-- `<button>` — 添加按钮
-- `<ul>` — 列表，每一条待办事项都会出现在这里
-- 两个 `<span>` — 分别显示待完成数量和已完成数量
+这部分定义了页面上能看到的所有元素：
 
-### 2. CSS（页面美颜）
+```html
+<!-- 输入框 + 添加按钮 — 第 138~141 行 -->
+<div class="input-row">
+  <input id="input" type="text" placeholder="输入新的待办..." autofocus>
+  <button id="addBtn">添加</button>
+</div>
 
-- **蓝色调** — 背景渐变、按钮、边框都是蓝色系
-- **圆角** — 输入框和按钮都是圆角，看着柔和
-- **阴影** — 卡片周围有淡淡的阴影，有立体感
-- **响应式** — 设置了 `max-width: 520px`，手机和电脑上都能看
+<!-- 统计数量 — 第 142~145 行 -->
+<div class="stats">
+  <span>待完成 <span class="num pending" id="pendingCount">0</span></span>
+  <span>已完成 <span class="num done" id="doneCount">0</span></span>
+</div>
 
-### 3. JavaScript（让页面动起来）
+<!-- 待办列表 — 第 146 行 -->
+<ul class="todo-list" id="todoList"></ul>
+```
 
-代码的核心思路：**数据驱动视图**。
+| 标签 | 作用 |
+|------|------|
+| `<input id="input">` | 输入框，用来打字 |
+| `<button id="addBtn">` | 添加按钮 |
+| `<ul id="todoList">` | 列表容器，待办事项会动态插入到这里面 |
+| `<span id="pendingCount">` | 显示还剩多少条没完成 |
+| `<span id="doneCount">` | 显示已完成多少条 |
 
-#### 数据存在哪？
+### 2. CSS（页面美颜）— 第 7~133 行
 
-- 数据存在浏览器的 `localStorage` 里，这就是"本地存储"
-- 你可以把它理解成一个"小仓库"，浏览器帮你记着，关掉页面也不会丢
-- 关键函数：
-  - `loadTodos()` — 打开页面时从仓库里取数据
-  - `saveTodos()` — 数据变化时存回仓库
+整段 `<style>` 标签里的代码都是 CSS。
 
-#### 数据长啥样？
+```
+第 7~133 行     全部 CSS 代码
+```
 
-每一条待办事项是一个"对象"：
+关键样式说明：
+
+| 代码位置 | 做了什么 |
+|---------|---------|
+| `第 10~12 行` `background: linear-gradient(...)` | 页面背景蓝色渐变 |
+| `第 18~25 行` `.container` | 白色卡片，`border-radius` 圆角，`box-shadow` 阴影 |
+| `第 24 行` `max-width: 520px` | 限制最大宽度，手机/电脑都能看（响应式） |
+| `第 38~46 行` `.input-row input` | 输入框：圆角、蓝色边框 |
+| `第 48~59 行` `.input-row button` | 添加按钮：蓝色背景、圆角 |
+| `第 85~94 行` `.todo-item` | 每行待办：圆角、浅蓝背景 |
+| `第 110~113 行` `.text.done` | 已完成文字的删除线 + 灰色 |
+
+### 3. JavaScript（让页面动起来）— 第 148~226 行
+
+#### 数据存在哪？— 第 149、158~165 行
+
+数据存在浏览器的 `localStorage` 里（浏览器的"小仓库"，关掉页面也不会丢）。
 
 ```javascript
-{ text: "买牛奶", done: false }
+// 第 149 行
+const STORAGE_KEY = 'todos';
+
+// 第 158~161 行 — 打开页面时从仓库取数据
+function loadTodos() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+
+// 第 163~165 行 — 数据变化时存回仓库
+function saveTodos() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+}
+```
+
+#### 数据长啥样？— 第 150 行
+
+每一条待办是一个"对象"，所有待办放在一个"数组"里：
+
+```javascript
+// 第 150 行
+let todos = loadTodos();   // 开始时: [] 空数组
+                            // 添加后: [{ text: "买牛奶", done: false }, ...]
 ```
 
 - `text` — 任务的内容
-- `done` — 是否已完成（`false` 表示没做完，`true` 表示做完了）
+- `done` — 是否已完成（`false` 没做完，`true` 做完了）
 
-所有待办事项放在一个"数组"里：
+#### 三个核心操作 — 第 193~213 行
 
 ```javascript
-[
-  { text: "买牛奶", done: false },
-  { text: "写作业", done: true }
-]
+// 第 193~201 行 — 添加
+function addTodo() {
+  const text = input.value.trim();
+  if (!text) return;
+  todos.push({ text, done: false });  // 塞进数组
+  saveTodos();                         // 存仓库
+  render();                            // 刷新页面
+  input.value = '';                    // 清空输入框
+  input.focus();                       // 光标回到输入框
+}
+
+// 第 203~207 行 — 切换完成状态
+function toggleTodo(index) {
+  todos[index].done = !todos[index].done;  // true→false, false→true
+  saveTodos();
+  render();
+}
+
+// 第 209~213 行 — 删除
+function deleteTodo(index) {
+  todos.splice(index, 1);  // 从数组里移除这一项
+  saveTodos();
+  render();
+}
 ```
 
-#### 三个核心操作
+#### 渲染 render() — 第 167~185 行
 
-| 操作 | 函数 | 做了什么 |
-|------|------|---------|
-| 添加 | `addTodo()` | 拿到输入框的文字，塞进数组，存仓库，刷新页面显示 |
-| 切换完成 | `toggleTodo()` | 找到对应项，把 `done` 取反（没完成→已完成，已完成→没完成） |
-| 删除 | `deleteTodo()` | 从数组里移除这一项，存仓库，刷新页面显示 |
+```javascript
+function render() {
+  // 第 168~171 行 — 统计数量，更新到顶部显示
+  const pending = todos.filter(t => !t.done).length;
+  const done = todos.filter(t => t.done).length;
+  pendingCount.textContent = pending;
+  doneCount.textContent = done;
 
-#### 渲染（render）
+  // 第 173~176 行 — 如果数组空，显示"暂无"
+  if (todos.length === 0) {
+    list.innerHTML = '<li class="empty-msg">暂无待办事项</li>';
+    return;
+  }
 
-`render()` 函数的工作：
+  // 第 178~184 行 — 根据数组内容生成列表 HTML
+  list.innerHTML = todos.map((t, i) => `
+    <li class="todo-item">
+      <input type="checkbox" ${t.done ? 'checked' : ''} data-index="${i}">
+      <span class="text${t.done ? ' done' : ''}">${escapeHtml(t.text)}</span>
+      <button class="del-btn" data-index="${i}" title="删除">&times;</button>
+    </li>
+  `).join('');
+}
+```
 
-1. 统计未完成和已完成的数量 → 更新到顶部显示
-2. 如果数组是空的 → 显示"暂无待办事项"
-3. 如果数组有数据 → 根据数组内容重新生成列表的 HTML
+每次添加/切换/删除都会调用 `render()`，让页面和数据保持一致。
 
-每次数据变化（添加 / 切换 / 删除）都会调用 `render()`，让页面和数据保持一致。
+#### 事件监听 — 第 215~223 行
 
-#### 事件监听
+```javascript
+// 第 215 行 — 点击"添加"按钮
+addBtn.addEventListener('click', addTodo);
 
-- 点击"添加"按钮 → 调用 `addTodo()`
-- 在输入框按回车 → 也调用 `addTodo()`
-- 点击复选框 → 调用 `toggleTodo()`
-- 点击 × 按钮 → 调用 `deleteTodo()`
+// 第 216 行 — 在输入框按回车
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTodo();
+});
 
-这里用了"事件委托"的技巧：只在 `<ul>` 上监听一次点击，然后判断点的是复选框还是删除按钮，比给每个按钮单独绑监听器更高效。
+// 第 218~223 行 — 事件委托：在列表上统一监听点击
+list.addEventListener('click', e => {
+  const checkbox = e.target.closest('input[type="checkbox"]');
+  const delBtn = e.target.closest('.del-btn');
+  if (checkbox) toggleTodo(+checkbox.dataset.index);
+  if (delBtn) deleteTodo(+delBtn.dataset.index);
+});
+```
+
+"事件委托"的意思是：不在每个复选框/删除按钮上单独绑监听，只在 `<ul>` 上绑一个，点的时候判断点的是哪个元素。
 
 ---
 
