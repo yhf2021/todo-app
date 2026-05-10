@@ -145,6 +145,25 @@ cd ~/reminder
 railway up
 ```
 
+### 10. 删除项目后重新部署（重置）
+
+如果需要从头开始（比如部署配置出错），可以删除项目后重新创建：
+
+```bash
+cd ~/reminder
+
+# 删除项目（会提示确认，输入 y 回车）
+railway project delete
+
+# 创建新项目
+railway init
+
+# 部署
+railway up
+```
+
+> 注意：删除项目会同时清除 Volume 中的数据，所有用户和待办数据将丢失。如有需要，先备份数据库。
+
 ---
 
 ## 数据库管理
