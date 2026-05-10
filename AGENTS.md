@@ -220,6 +220,21 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
 
 ---
 
+## 常见修改参考
+
+| 修改目标 | 对应位置 |
+|---------|---------|
+| 标题文字 | `index.html` 中的 `<h1>` 标签 |
+| 主题颜色 | `css/style.css` 中搜索 `#4a8cf7` |
+| 优先级颜色 | `css/style.css` 中搜索 `.priority-` |
+| 优先级选项 | `index.html` 中 `<select id="prioritySelect">` |
+| localStorage key | `js/storage.js` 中的 `KEY` 变量 |
+| 空状态提示 | `js/app.js` 中 `render()` 的 `empty-msg` |
+| 清空确认文案 | `js/app.js` 中 `handleClearAll` 的 `confirm(...)` |
+| 添加新功能 | 先在 `js/todo.js` 加函数，再到 `js/app.js` 调用 |
+
+---
+
 ## 后端设计（多设备共享方案）
 
 当前版本数据仅限浏览器本地。后端改造后方可多设备共享。

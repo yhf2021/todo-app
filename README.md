@@ -34,21 +34,6 @@ README.md           本文件
 
 ---
 
-## 如果想修改
-
-| 想改什么 | 在哪里改 |
-|---------|---------|
-| 标题文字 | `index.html` 中的 `<h1>` 标签 |
-| 主题颜色 | `css/style.css` 中搜索 `#4a8cf7` |
-| 优先级颜色 | `css/style.css` 中搜索 `.priority-` |
-| 优先级选项 | `index.html` 中 `<select id="prioritySelect">` |
-| localStorage key | `js/storage.js` 中的 `KEY` 变量 |
-| 空状态提示 | `js/app.js` 中 `render()` 的 `empty-msg` |
-| 清空确认文案 | `js/app.js` 中 `handleClearAll` 的 `confirm(...)` |
-| 添加新功能 | 先在 `js/todo.js` 加函数，再到 `js/app.js` 调用 |
-
----
-
 ## 常见问题
 
 **Q: 换浏览器或清空缓存后数据会丢吗？**
