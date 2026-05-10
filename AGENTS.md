@@ -79,6 +79,7 @@ HTML 标签引入外部 CSS 和 JS，不包含任何内联样式或脚本：
 | `<button>` | `registerBtn` | 注册按钮 |
 | `<button>` | `logoutBtn` | 退出登录 |
 | `<div>` | `authError` | 登录错误提示 |
+| `<span>` | `usernameDisplay` | 显示当前登录用户名 |
 
 ---
 
@@ -278,7 +279,33 @@ railway init
 railway up
 ```
 
-部署完成后需在 Railway 控制台添加 Volume 持久化数据库（挂载路径 `server/prisma`）。
+部署完成后需在 Railway 控制台添加 Volume 持久化数据库：
+
+- **Mount Path**: `server/prisma/data`
+- 数据库文件路径由 Prisma schema 定义：`url = "file:./data/dev.db"`
+
+### Railway 数据库查询
+
+```bash
+# 1. 生成 SSH 密钥（仅首次）
+ssh-keygen -t ed25519 -f ~/.ssh/railway -N ""
+cp ~/.ssh/railway ~/.ssh/id_ed25519
+cp ~/.ssh/railway.pub ~/.ssh/id_ed25519.pub
+
+# 2. 注册到 Railway（仅首次）
+railway ssh keys add --key ~/.ssh/railway.pub
+
+# 3. 创建 askpass 脚本（仅首次，解决非交互终端问题）
+echo '#!/bin/bash; echo "yes"' > /tmp/ssh_askpass
+chmod +x /tmp/ssh_askpass
+
+# 4. SSH 进入容器查询
+SSH_ASKPASS=/tmp/ssh_askpass SSH_ASKPASS_REQUIRE=force \
+  railway ssh -s <service-id> \
+  "sqlite3 /app/server/prisma/data/dev.db 'SELECT id, username FROM user;'"
+```
+
+> `railway run sqlite3 ...` 无法读取 Volume 数据（临时容器不挂载 Volume），必须使用 `railway ssh` 进入运行中的容器。
 
 ### 整体架构
 
@@ -338,7 +365,7 @@ server/
     auth.js         注册/登录
     todos.js        待办 CRUD
   prisma/
-    schema.prisma   数据库表定义（SQLite，url = "file:./dev.db"）
+    schema.prisma   数据库表定义（SQLite，url = "file:./data/dev.db"）
 ```
 
 ### 安全规则
