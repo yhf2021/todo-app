@@ -241,6 +241,169 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部（
 
 ---
 
+---
+
+## 后端设计文档（多设备数据共享）
+
+当前版本的数据只存在浏览器本地。下面是改造为"多设备共享"的技术方案。
+
+### 整体架构
+
+```
+┌─────────────────┐      ┌──────────────────┐      ┌──────────────┐
+│  浏览器 (前端)    │─────▶│  后端 API 服务器  │─────▶│   数据库      │
+│  index.html      │ HTTP │  Node.js/Express │ SQL  │  PostgreSQL  │
+│  js/app.js       │◀─────│  /api/todos      │◀─────│  /  MySQL     │
+└─────────────────┘      └──────────────────┘      └──────────────┘
+```
+
+- **前端**：现有代码基本不变，`storage.js` 改为调用后端 API
+- **后端**：新写一个 Node.js 服务，提供 RESTful 接口
+- **数据库**：存储所有用户的待办数据
+
+### 技术选型
+
+| 层 | 技术 | 原因 |
+|---|------|------|
+| 后端框架 | **Node.js + Express** | 前端开发者直接用 JavaScript，上手快 |
+| 数据库 | **PostgreSQL**（生产）或 **SQLite**（开发/演示） | 关系型数据库，数据结构稳定 |
+| ORM | **Prisma** | 不用手写 SQL，自动建表、类型安全 |
+| 认证 | **JWT**（JSON Web Token） | 无状态，简单易用 |
+| 部署 | **Railway / Render / Vercel** | 免费套餐足够个人项目使用 |
+
+### 数据库表结构
+
+```sql
+-- 用户表
+CREATE TABLE users (
+  id       SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL          -- 加密存储（bcrypt）
+);
+
+-- 待办事项表
+CREATE TABLE todos (
+  id        SERIAL PRIMARY KEY,
+  user_id   INTEGER NOT NULL REFERENCES users(id),
+  text      TEXT NOT NULL,
+  done      BOOLEAN NOT NULL DEFAULT false,
+  priority  TEXT NOT NULL DEFAULT 'medium'
+              CHECK (priority IN ('high', 'medium', 'low')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### API 接口设计
+
+| 方法 | 路径 | 说明 | 是否需要登录 |
+|------|------|------|------------|
+| `POST` | `/api/register` | 注册新用户 | ❌ |
+| `POST` | `/api/login` | 登录，返回 JWT | ❌ |
+| `GET` | `/api/todos` | 获取当前用户所有待办 | ✅ |
+| `POST` | `/api/todos` | 新增一条待办 | ✅ |
+| `PUT` | `/api/todos/:id` | 修改待办（文字/优先级） | ✅ |
+| `PATCH` | `/api/todos/:id/toggle` | 切换完成状态 | ✅ |
+| `DELETE` | `/api/todos/:id` | 删除一条待办 | ✅ |
+| `DELETE` | `/api/todos/done` | 清空已完成 | ✅ |
+| `DELETE` | `/api/todos/all` | 清空全部 | ✅ |
+
+### 请求与响应示例
+
+```
+POST /api/register
+请求: { "username": "alice", "password": "123456" }
+响应: { "token": "eyJhbGciOiJIUzI1NiIs..." }
+
+POST /api/login
+请求: { "username": "alice", "password": "123456" }
+响应: { "token": "eyJhbGciOiJIUzI1NiIs..." }
+
+GET /api/todos
+请求头: Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+响应: [
+  { "id": 1, "text": "买牛奶", "done": false, "priority": "high" },
+  { "id": 2, "text": "写作业", "done": true, "priority": "medium" }
+]
+
+POST /api/todos
+请求头: Authorization: Bearer ...
+请求: { "text": "去跑步", "priority": "low" }
+响应: { "id": 3, "text": "去跑步", "done": false, "priority": "low" }
+```
+
+### 数据流变化
+
+改造后，前端不再读写 `localStorage`，改为调 API：
+
+```
+用户操作（点击/输入）
+       │
+       ▼
+  app.js ──调用──▶  api.js（新增） ──HTTP──▶ 后端服务器 ──SQL──▶ 数据库
+       │                 │
+       │          统一管理所有请求         response 返回最新数据
+       │                 │
+       ▼                 ▼
+  render() 刷新页面 ◄────┘
+```
+
+### 前端需要修改的部分
+
+| 现有文件 | 改动 |
+|---------|------|
+| `js/storage.js` | **删掉**，不再使用 `localStorage` |
+| `js/todo.js` | `add/toggle/remove/clearDone/clearAll` 改为异步调 API |
+| `js/app.js` | 加上登录/注册页面，保存 JWT token |
+| `js/api.js` | **新建**，统一封装 `fetch` 请求，自动携带 token |
+| `index.html` | 增加登录/注册表单 |
+
+### 改造后的项目结构
+
+```
+index.html
+css/style.css
+js/
+  api.js          ← 新增：封装所有 HTTP 请求
+  todo.js         ← 修改：调 API 而非 localStorage
+  app.js          ← 修改：增加登录/注册逻辑
+storage.js        ← 删除
+server/             ← 新增：后端代码
+  index.js        入口，Express 服务器
+  db.js           Prisma 数据库连接
+  auth.js         JWT 鉴权中间件
+  routes/
+    auth.js       注册/登录接口
+    todos.js      待办 CRUD 接口
+```
+
+### 部署方式
+
+后端和前端可以分开部署，也可以合并部署：
+
+**方案 A：前后端分离（推荐）**
+
+| 服务 | 部署平台 | 地址 |
+|------|---------|------|
+| 前端（HTML/CSS/JS） | GitHub Pages | `https://yhf2021.github.io/todo-app` |
+| 后端 API（Node.js） | Railway / Render | `https://todo-api.xxx.com` |
+
+前端通过环境变量或配置指定后端地址。
+
+**方案 B：单体部署**
+
+把前后端放在一起，用 Express 直接托管 `index.html` 和静态文件，部署到单一平台。
+
+### 安全注意事项
+
+- 密码**绝不**明文存储，使用 `bcrypt` 加密
+- JWT 设置过期时间（如 7 天）
+- API 使用 HTTPS（部署平台自动提供）
+- 每个请求校验 token，用户只能操作自己的数据
+- 前端不暴露后端数据库结构
+
+---
+
 ## 常见问题
 
 **Q: 换浏览器或清空缓存后数据会丢吗？**
