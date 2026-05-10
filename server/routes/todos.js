@@ -52,16 +52,6 @@ router.patch('/:id/toggle', async function(req, res) {
   res.json(updated);
 });
 
-router.delete('/:id', async function(req, res) {
-  var id = +req.params.id;
-  var todo = await prisma.todo.findUnique({ where: { id: id } });
-  if (!todo || todo.userId !== req.userId) {
-    return res.status(404).json({ error: '未找到' });
-  }
-  await prisma.todo.delete({ where: { id: id } });
-  res.json({ success: true });
-});
-
 router.delete('/done', async function(req, res) {
   await prisma.todo.deleteMany({
     where: { userId: req.userId, done: true }
@@ -73,6 +63,16 @@ router.delete('/all', async function(req, res) {
   await prisma.todo.deleteMany({
     where: { userId: req.userId }
   });
+  res.json({ success: true });
+});
+
+router.delete('/:id', async function(req, res) {
+  var id = +req.params.id;
+  var todo = await prisma.todo.findUnique({ where: { id: id } });
+  if (!todo || todo.userId !== req.userId) {
+    return res.status(404).json({ error: '未找到' });
+  }
+  await prisma.todo.delete({ where: { id: id } });
   res.json({ success: true });
 });
 
