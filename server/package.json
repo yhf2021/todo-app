@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "npx prisma migrate deploy && node index.js",
+    "dev": "node --watch index.js",
+    "postinstall": "npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
