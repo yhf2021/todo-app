@@ -1,14 +1,10 @@
-const App = (function() {
+const Api = (function() {
   var BASE_URL = window.location.origin + '/api';
   // 如果前后端分离部署，改为后端地址：
   // var BASE_URL = 'https://todo-api.xxx.com/api';
 
   function getToken() {
     return localStorage.getItem('token');
-  }
-
-  function saveToken(token) {
-    localStorage.setItem('token', token);
   }
 
   function clearToken() {
@@ -26,7 +22,6 @@ const App = (function() {
     var res = await fetch(BASE_URL + path, options);
     if (res.status === 401) {
       clearToken();
-      App.showLogin();
       throw new Error('登录已过期');
     }
     if (!res.ok) {

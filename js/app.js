@@ -116,6 +116,14 @@ const App = (function() {
     }
   }
 
+  function handleApiError(e) {
+    if (!localStorage.getItem('token')) {
+      showLogin();
+      return true;
+    }
+    return false;
+  }
+
   function showHint() {
     els.hint.classList.add('show');
     els.input.classList.add('error');
@@ -145,7 +153,7 @@ const App = (function() {
       els.input.value = '';
       els.input.focus();
     } catch (e) {
-      alert('添加失败: ' + e.message);
+      if (!handleApiError(e)) alert('添加失败: ' + e.message);
     }
   }
 
@@ -161,7 +169,7 @@ const App = (function() {
       try {
         await TodoApp.update(id, { text: text });
       } catch (e) {
-        alert('保存失败: ' + e.message);
+        if (!handleApiError(e)) alert('保存失败: ' + e.message);
       }
     }
     editingIndex = null;
@@ -178,7 +186,7 @@ const App = (function() {
       await TodoApp.clearDone();
       render();
     } catch (e) {
-      alert('操作失败: ' + e.message);
+      if (!handleApiError(e)) alert('操作失败: ' + e.message);
     }
   }
 
@@ -189,7 +197,7 @@ const App = (function() {
         editingIndex = null;
         render();
       } catch (e) {
-        alert('操作失败: ' + e.message);
+        if (!handleApiError(e)) alert('操作失败: ' + e.message);
       }
     }
   }
@@ -204,7 +212,7 @@ const App = (function() {
         await TodoApp.toggle(+checkbox.dataset.id);
         render();
       } catch (e) {
-        alert('操作失败: ' + e.message);
+        if (!handleApiError(e)) alert('操作失败: ' + e.message);
       }
     }
 
@@ -222,7 +230,7 @@ const App = (function() {
         }
         render();
       } catch (e) {
-        alert('操作失败: ' + e.message);
+        if (!handleApiError(e)) alert('操作失败: ' + e.message);
       }
     }
 
