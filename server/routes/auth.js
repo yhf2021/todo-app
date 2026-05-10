@@ -31,11 +31,11 @@ router.post('/login', async function(req, res) {
     var { username, password } = req.body;
     var user = await prisma.user.findUnique({ where: { username: username } });
     if (!user) {
-      return res.status(400).json({ error: '用户名或密码错误' });
+      return res.status(400).json({ error: '用户不存在' });
     }
     var ok = await bcrypt.compare(password, user.password);
     if (!ok) {
-      return res.status(400).json({ error: '用户名或密码错误' });
+      return res.status(400).json({ error: '密码错误' });
     }
     var token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '7d' });
     res.json({ token: token });
