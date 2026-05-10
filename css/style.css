@@ -230,3 +230,85 @@ h1 {
 .clear-all-btn { color: #b0c8e8; }
 .clear-all-btn:hover { border-color: #8a9fc0; color: #5a7aae; background: #f0f6ff; }
 .clear-all-btn.show { display: inline-block; }
+
+/* ---- 登录/注册 ---- */
+
+#authSection { display: none; }
+
+.auth-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.auth-box input {
+  padding: 12px 16px;
+  border: 2px solid #d0e2ff;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.auth-box input:focus { border-color: #4a8cf7; }
+
+.auth-error {
+  color: #e05050;
+  font-size: 13px;
+  min-height: 1.2em;
+}
+
+.auth-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.auth-btns button {
+  flex: 1;
+  padding: 12px;
+  background: #4a8cf7;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-btns button:hover { background: #3578e0; }
+
+.auth-btns .btn-secondary {
+  background: #fff;
+  color: #4a8cf7;
+  border: 2px solid #d0e2ff;
+}
+
+.auth-btns .btn-secondary:hover { background: #f0f6ff; border-color: #4a8cf7; }
+
+/* ---- 待办区域 ---- */
+
+#todoSection { display: none; }
+
+.todo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.todo-header h1 { margin-bottom: 0; }
+
+.logout-btn {
+  background: none;
+  border: 1.5px solid #d0d9f0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #8a9fc0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover { border-color: #e05050; color: #e05050; background: #fff6f6; }

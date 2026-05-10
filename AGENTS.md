@@ -26,13 +26,23 @@
 ## 项目结构
 
 ```
-index.html          页面骨架（仅 HTML，不内嵌样式和脚本）
+index.html          页面骨架（含登录/注册和待办界面）
 css/
   style.css         全部样式（颜色、圆角、阴影、响应式）
 js/
-  storage.js        数据持久化层（localStorage 读写）
-  todo.js           业务逻辑层（待办的增删改查 + 排序）
-  app.js            视图层（DOM 渲染、事件绑定、编辑状态管理）
+  api.js            HTTP 请求层（封装 fetch，自动带 JWT token）
+  todo.js           业务逻辑层（待办的增删改查 + 排序，异步调 API）
+  app.js            视图层（DOM 渲染、事件绑定、登录/注册管理）
+server/              后端服务（Node.js + Express + Prisma）
+  index.js          入口，Express 服务器
+  db.js             Prisma 客户端
+  auth.js           JWT 鉴权中间件
+  routes/
+    auth.js         注册/登录接口
+    todos.js        待办 CRUD 接口
+  prisma/
+    schema.prisma   数据库表定义
+  package.json      依赖管理
 AGENTS.md            本文件（技术上下文）
 README.md            用户说明文档
 ```
@@ -48,8 +58,8 @@ HTML 标签引入外部 CSS 和 JS，不包含任何内联样式或脚本：
 ```html
 <link rel="stylesheet" href="css/style.css">
 
-<!-- JS 加载顺序严格：storage → todo → app -->
-<script src="js/storage.js"></script>
+<!-- JS 加载顺序严格：api → todo → app -->
+<script src="js/api.js"></script>
 <script src="js/todo.js"></script>
 <script src="js/app.js"></script>
 ```
@@ -67,6 +77,12 @@ HTML 标签引入外部 CSS 和 JS，不包含任何内联样式或脚本：
 | `<div>` | `hint` | 空输入错误提示 |
 | `<button>` | `clearBtn` | 清空已完成（有完成项时显示） |
 | `<button>` | `clearAllBtn` | 清空全部（有任务时显示） |
+| `<input>` | `authUser` | 登录/注册用户名 |
+| `<input>` | `authPass` | 登录/注册密码 |
+| `<button>` | `loginBtn` | 登录按钮 |
+| `<button>` | `registerBtn` | 注册按钮 |
+| `<button>` | `logoutBtn` | 退出登录 |
+| `<div>` | `authError` | 登录错误提示 |
 
 ---
 
@@ -99,24 +115,28 @@ body { background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%); }
 
 ---
 
-### js/storage.js — 数据持久化层
+### js/api.js — HTTP 请求层
 
-封装 `localStorage` 的读写，对外暴露 `Storage` 全局对象：
+封装所有后端 API 请求，自动附带 JWT token。对外暴露 `Api` 全局对象：
 
 ```javascript
-const Storage = (function() {
-  const KEY = 'todos';
+const Api = (function() {
+  var BASE_URL = window.location.origin + '/api';
 
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-    catch (e) { return []; }
+  function getToken() { return localStorage.getItem('token'); }
+
+  async function request(method, path, body) {
+    // 自动加 Content-Type 和 Authorization header
+    // 401 时自动清除 token 并跳转到登录页
+    // 其他错误抛异常
   }
 
-  function save(todos) {
-    localStorage.setItem(KEY, JSON.stringify(todos));
-  }
-
-  return { load, save };
+  return {
+    register, login,               // 认证
+    getTodos, addTodo,             // 待办 CRUD
+    updateTodo, toggleTodo,
+    deleteTodo, clearDone, clearAll
+  };
 })();
 ```
 
@@ -142,14 +162,14 @@ const Storage = (function() {
 
 | 方法 | 说明 | 触发时机 |
 |------|------|---------|
-| `init()` | 从 Storage 加载数据 + 旧数据迁移（补 `priority`）+ 按优先级排序 | 页面加载 |
+| `init()` | 从 API 获取数据 + 按优先级排序 | 页面加载 |
 | `getAll()` | 返回 `_todos` 数组引用 | render |
-| `add(text, priority)` | 追加新任务，按优先级排序后存盘 | 用户添加 |
-| `toggle(index)` | 切换 `done` 状态 | 点击复选框 |
-| `update(index, data)` | 修改 `text` 或 `priority` | 编辑保存 |
-| `remove(index)` | 从数组删除指定项 | 点击删除按钮 |
-| `clearDone()` | 过滤掉所有 `done=true` 的项 | 清空已完成 |
-| `clearAll()` | 重置为空数组 | 清空全部 |
+| `add(text, priority)` | 调 API 追加，按优先级排序后存本地 | 用户添加 |
+| `toggle(id)` | 调 API 切换 `done` 状态 | 点击复选框 |
+| `update(id, data)` | 调 API 修改 `text` 或 `priority` | 编辑保存 |
+| `remove(id)` | 调 API 从数组删除指定项 | 点击删除按钮 |
+| `clearDone()` | 调 API 过滤掉所有 `done=true` 的项 | 清空已完成 |
+| `clearAll()` | 调 API 重置为空数组 | 清空全部 |
 | `getStats()` | 返回 `{ total, pending, done }` | render |
 
 **排序规则：** `high`(0) → `medium`(1) → `low`(2)，每次 `add()` 和 `init()` 时执行。
@@ -161,6 +181,8 @@ const Storage = (function() {
 ### js/app.js — 视图层
 
 操作 DOM、绑定事件、管理编辑状态，对外暴露 `App` 全局对象。内部使用 IIFE 模式封装私有变量。
+
+**核心数据结构：** `els` 对象缓存所有 DOM 引用，`editingIndex` 跟踪正在编辑的项。
 
 **核心数据结构：** `els` 对象缓存所有 DOM 引用，`editingIndex` 跟踪正在编辑的项。
 
@@ -210,13 +232,13 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
   app.js（视图层）
    ── 调用 TodoApp.xxx() ──►  todo.js（业务层）
                                  ── 修改 _todos 数组
-                                 ── 调用 Storage.save() ──►  storage.js（数据层）
-                                                               ── 写入 localStorage
+                                 ── 调用 Api.xxx() ──►  api.js（请求层）
+                                                         ── HTTP ──► 后端服务器
   app.js（视图层）
    ── render() 刷新页面 ◄── 取自 TodoApp.getAll()
 ```
 
-核心循环：**用户操作 → 改数据 → 存仓库 → 刷新页面**。
+核心循环：**用户操作 → 改数据 → 调 API → 刷新页面**。
 
 ---
 
@@ -237,15 +259,26 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
 
 ## 后端设计（多设备共享方案）
 
-当前版本数据仅限浏览器本地。后端改造后方可多设备共享。
+前后端代码已完整实现。启动服务器即可支持多设备共享。
+
+### 启动服务器
+
+```bash
+cd server
+npm install
+npx prisma migrate dev --name init
+npm start
+```
+
+服务运行在 http://localhost:3000，浏览器打开即可使用。
 
 ### 整体架构
 
 ```
 ┌─────────────────┐      ┌──────────────────┐      ┌──────────────┐
 │  浏览器 (前端)    │─────▶│  后端 API 服务器  │─────▶│   数据库      │
-│  index.html      │ HTTP │  Node.js/Express │ SQL  │  PostgreSQL  │
-│  js/app.js       │◀─────│  /api/todos      │◀─────│  /  MySQL     │
+│  index.html      │ HTTP │  Node.js/Express │ SQL  │  SQLite      │
+│  js/app.js       │◀─────│  /api/todos      │◀─────│  (开发用)     │
 └─────────────────┘      └──────────────────┘      └──────────────┘
 ```
 
@@ -284,24 +317,14 @@ CREATE TABLE todos (
 | `DELETE` | `/api/todos/done` | 清空已完成 | ✅ |
 | `DELETE` | `/api/todos/all` | 清空全部 | ✅ |
 
-### 前端改造清单
-
-| 文件 | 改动 |
-|------|------|
-| `js/storage.js` | **删除**，不再使用 `localStorage` |
-| `js/api.js` | **新建**，封装 `fetch`，自动带 JWT token |
-| `js/todo.js` | 方法改造为 `async`，调 `api.js` 而非 `Storage` |
-| `js/app.js` | 增加登录/注册 UI 和逻辑，保存 token |
-| `index.html` | 增加登录/注册表单 |
-
-### 改造后项目结构
+### 当前项目结构
 
 ```
 index.html
 css/style.css
 js/
-  api.js          ← 新增 HTTP 请求层
-  todo.js         ← 改为异步 API 调用
+  api.js          ← HTTP 请求层
+  todo.js         ← 异步 API 调用
   app.js          ← 增加登录/注册
 storage.js        ← 删除
 server/

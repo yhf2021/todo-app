@@ -1,5 +1,5 @@
 const TodoApp = (function() {
-  let _todos = [];
+  var _todos = [];
 
   function priorityWeight(p) {
     if (p === 'high') return 0;
@@ -13,54 +13,51 @@ const TodoApp = (function() {
     });
   }
 
-  function init() {
-    _todos = Storage.load();
-    let migrated = false;
-    _todos = _todos.map(function(t) {
-      if (!t.priority) {
-        migrated = true;
-        return { text: t.text, done: t.done, priority: 'medium' };
-      }
-      return t;
-    });
-    sort();
-    if (migrated) Storage.save(_todos);
+  async function init() {
+    try {
+      _todos = await Api.getTodos();
+      sort();
+    } catch (e) {
+      _todos = [];
+      throw e;
+    }
   }
 
   function getAll() {
     return _todos;
   }
 
-  function add(text, priority) {
-    _todos.push({ text, done: false, priority: priority || 'medium' });
+  async function add(text, priority) {
+    var todo = await Api.addTodo(text, priority || 'medium');
+    _todos.push(todo);
     sort();
-    Storage.save(_todos);
   }
 
-  function toggle(index) {
-    _todos[index].done = !_todos[index].done;
-    Storage.save(_todos);
+  async function toggle(id) {
+    await Api.toggleTodo(id);
+    var todo = _todos.find(function(t) { return t.id === id; });
+    if (todo) todo.done = !todo.done;
   }
 
-  function update(index, data) {
-    if (data.text !== undefined) _todos[index].text = data.text;
-    if (data.priority !== undefined) _todos[index].priority = data.priority;
-    Storage.save(_todos);
+  async function update(id, data) {
+    var updated = await Api.updateTodo(id, data);
+    var index = _todos.findIndex(function(t) { return t.id === id; });
+    if (index !== -1) _todos[index] = updated;
   }
 
-  function remove(index) {
-    _todos.splice(index, 1);
-    Storage.save(_todos);
+  async function remove(id) {
+    await Api.deleteTodo(id);
+    _todos = _todos.filter(function(t) { return t.id !== id; });
   }
 
-  function clearDone() {
+  async function clearDone() {
+    await Api.clearDone();
     _todos = _todos.filter(function(t) { return !t.done; });
-    Storage.save(_todos);
   }
 
-  function clearAll() {
+  async function clearAll() {
+    await Api.clearAll();
     _todos = [];
-    Storage.save(_todos);
   }
 
   function getStats() {
