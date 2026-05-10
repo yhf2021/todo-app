@@ -2,9 +2,11 @@
 
 一个支持**多设备共享**的待办事项网页，注册账号后，任何设备登录同一账号都能看到同一份数据。
 
+在线体验：https://todo-app-production-8dca.up.railway.app
+
 ---
 
-## 如何启动
+## 如何启动（本地部署）
 
 ```bash
 # 1. 安装依赖（只需执行一次）
@@ -19,6 +21,8 @@ npm start
 ```
 
 浏览器打开 `http://localhost:3000`，先注册账号，登录后即可使用。
+
+详情部署方式见 [DEPLOY.md](DEPLOY.md)。
 
 ---
 
@@ -37,27 +41,29 @@ npm start
 ## 项目结构
 
 ```
-index.html          页面骨架（含登录/注册和待办界面）
+package.json         根 package.json（Railway 部署识别为 Node 项目）
+index.html           页面骨架（含登录/注册和待办界面）
 css/
-  style.css         样式文件
+  style.css          样式文件
 js/
-  api.js            HTTP 请求层（调后端 API）
-  todo.js           业务逻辑（增删改查）
-  app.js            页面交互（渲染 + 事件 + 登录管理）
-server/              后端服务
-  index.js          Express 服务器入口
-  db.js             数据库连接
-  auth.js           JWT 鉴权
+  api.js             HTTP 请求层（调后端 API）
+  todo.js            业务逻辑（增删改查）
+  app.js             页面交互（渲染 + 事件 + 登录管理）
+server/               后端服务（Node.js + Express）
+  index.js           Express 服务器入口
+  db.js              数据库连接
+  auth.js            JWT 鉴权
   routes/
-    auth.js         注册/登录接口
-    todos.js        待办 CRUD 接口
+    auth.js          注册/登录接口
+    todos.js         待办 CRUD 接口
   prisma/
-    schema.prisma   数据库表定义
-AGENTS.md           技术文档（架构、代码说明）
-README.md           本文件
+    schema.prisma    数据库表定义
+AGENTS.md            技术文档（架构、代码说明）
+DEPLOY.md            部署指导文档
+README.md            本文件
 ```
 
-详细代码说明见 [AGENTS.md](AGENTS.md)。
+详细代码说明见 [AGENTS.md](AGENTS.md)，部署方式见 [DEPLOY.md](DEPLOY.md)。
 
 ---
 
