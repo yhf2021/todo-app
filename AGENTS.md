@@ -9,42 +9,38 @@
 | 层 | 当前技术 | 说明 |
 |---|---------|------|
 | 前端 | 原生 HTML + CSS + JavaScript | 无框架依赖，直接浏览器打开即可运行 |
-| 数据存储 | `localStorage`（浏览器本地） | 当前仅本地存储，刷新不丢失，换设备丢失 |
-
-### 待引入（多设备共享改造）
-
-| 层 | 技术 | 原因 |
-|---|------|------|
-| 后端框架 | **Node.js + Express** | 前端开发者直接用 JavaScript，上手快 |
-| 数据库 | **PostgreSQL**（生产）或 **SQLite**（开发/演示） | 关系型数据库，数据结构稳定 |
-| ORM | **Prisma** | 不用手写 SQL，自动建表、类型安全 |
-| 认证 | **JWT**（JSON Web Token） | 无状态，简单易用 |
-| 部署 | **Railway / Render / Vercel** | 免费套餐足够个人项目使用 |
+| 后端框架 | **Node.js + Express** | 提供 RESTful API |
+| 数据库 | **SQLite**（开发） | 通过 Prisma ORM 操作 |
+| ORM | **Prisma** | 自动建表、类型安全 |
+| 认证 | **JWT**（JSON Web Token） | 无状态登录，7 天过期 |
+| 部署 | **Railway** | 免费套餐，支持 Node.js |
 
 ---
 
 ## 项目结构
 
 ```
-index.html          页面骨架（含登录/注册和待办界面）
+package.json         根 package.json（Railway 部署识别为 Node 项目）
+index.html           页面骨架（含登录/注册和待办界面）
 css/
-  style.css         全部样式（颜色、圆角、阴影、响应式）
+  style.css          全部样式（颜色、圆角、阴影、响应式）
 js/
-  api.js            HTTP 请求层（封装 fetch，自动带 JWT token）
-  todo.js           业务逻辑层（待办的增删改查 + 排序，异步调 API）
-  app.js            视图层（DOM 渲染、事件绑定、登录/注册管理）
-server/              后端服务（Node.js + Express + Prisma）
-  index.js          入口，Express 服务器
-  db.js             Prisma 客户端
-  auth.js           JWT 鉴权中间件
+  api.js             HTTP 请求层（封装 fetch，自动带 JWT token）
+  todo.js            业务逻辑层（待办的增删改查 + 排序，异步调 API）
+  app.js             视图层（DOM 渲染、事件绑定、登录/注册管理）
+server/               后端服务（Node.js + Express + Prisma）
+  index.js           入口，Express 服务器
+  db.js              Prisma 客户端
+  auth.js            JWT 鉴权中间件
   routes/
-    auth.js         注册/登录接口
-    todos.js        待办 CRUD 接口
+    auth.js          注册/登录接口
+    todos.js         待办 CRUD 接口
   prisma/
-    schema.prisma   数据库表定义
-  package.json      依赖管理
-AGENTS.md            本文件（技术上下文）
-README.md            用户说明文档
+    schema.prisma    数据库表定义
+  package.json       依赖管理
+AGENTS.md             本文件（技术上下文）
+README.md             用户说明文档
+DEPLOY.md             部署指导文档（仅本地）
 ```
 
 ---
@@ -184,8 +180,6 @@ const Api = (function() {
 
 **核心数据结构：** `els` 对象缓存所有 DOM 引用，`editingIndex` 跟踪正在编辑的项。
 
-**核心数据结构：** `els` 对象缓存所有 DOM 引用，`editingIndex` 跟踪正在编辑的项。
-
 **render 函数**（每次数据变化时调用）：
 
 ```javascript
@@ -250,7 +244,6 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
 | 主题颜色 | `css/style.css` 中搜索 `#4a8cf7` |
 | 优先级颜色 | `css/style.css` 中搜索 `.priority-` |
 | 优先级选项 | `index.html` 中 `<select id="prioritySelect">` |
-| localStorage key | `js/storage.js` 中的 `KEY` 变量 |
 | 空状态提示 | `js/app.js` 中 `render()` 的 `empty-msg` |
 | 清空确认文案 | `js/app.js` 中 `handleClearAll` 的 `confirm(...)` |
 | 添加新功能 | 先在 `js/todo.js` 加函数，再到 `js/app.js` 调用 |
@@ -271,6 +264,21 @@ npm start
 ```
 
 服务运行在 http://localhost:3000，浏览器打开即可使用。
+
+### Railway 部署
+
+根目录 `package.json` 使 Railway 能自动识别为 Node 项目。`start` 脚本会自动执行 `cd server && npx prisma migrate deploy && node index.js`。
+
+```bash
+# 安装 CLI 并部署
+sudo npm install -g @railway/cli
+railway login
+cd ~/reminder
+railway init
+railway up
+```
+
+部署完成后需在 Railway 控制台添加 Volume 持久化数据库（挂载路径 `server/prisma`）。
 
 ### 整体架构
 
@@ -320,20 +328,17 @@ CREATE TABLE todos (
 ### 当前项目结构
 
 ```
-index.html
-css/style.css
-js/
-  api.js          ← HTTP 请求层
-  todo.js         ← 异步 API 调用
-  app.js          ← 增加登录/注册
-storage.js        ← 删除
+package.json        根 package.json（Railway 识别为 Node 项目的关键）
 server/
-  index.js        入口，Express
-  db.js           Prisma 客户端
-  auth.js         JWT 中间件
+  index.js          入口，Express
+  db.js             Prisma 客户端
+  auth.js           JWT 中间件
+  package.json      server 依赖管理
   routes/
-    auth.js       注册/登录
-    todos.js      待办 CRUD
+    auth.js         注册/登录
+    todos.js        待办 CRUD
+  prisma/
+    schema.prisma   数据库表定义（SQLite，url = "file:./dev.db"）
 ```
 
 ### 安全规则
