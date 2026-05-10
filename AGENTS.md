@@ -1,0 +1,307 @@
+# AGENTS.md — 项目上下文
+
+本项目面向 AI 助手和开发者，记录技术栈、架构设计、代码说明等工程上下文。
+
+---
+
+## 技术栈
+
+| 层 | 当前技术 | 说明 |
+|---|---------|------|
+| 前端 | 原生 HTML + CSS + JavaScript | 无框架依赖，直接浏览器打开即可运行 |
+| 数据存储 | `localStorage`（浏览器本地） | 当前仅本地存储，刷新不丢失，换设备丢失 |
+
+### 待引入（多设备共享改造）
+
+| 层 | 技术 | 原因 |
+|---|------|------|
+| 后端框架 | **Node.js + Express** | 前端开发者直接用 JavaScript，上手快 |
+| 数据库 | **PostgreSQL**（生产）或 **SQLite**（开发/演示） | 关系型数据库，数据结构稳定 |
+| ORM | **Prisma** | 不用手写 SQL，自动建表、类型安全 |
+| 认证 | **JWT**（JSON Web Token） | 无状态，简单易用 |
+| 部署 | **Railway / Render / Vercel** | 免费套餐足够个人项目使用 |
+
+---
+
+## 项目结构
+
+```
+index.html          页面骨架（仅 HTML，不内嵌样式和脚本）
+css/
+  style.css         全部样式（颜色、圆角、阴影、响应式）
+js/
+  storage.js        数据持久化层（localStorage 读写）
+  todo.js           业务逻辑层（待办的增删改查 + 排序）
+  app.js            视图层（DOM 渲染、事件绑定、编辑状态管理）
+AGENTS.md            本文件（技术上下文）
+README.md            用户说明文档
+```
+
+---
+
+## 代码说明
+
+### index.html — 页面骨架
+
+HTML 标签引入外部 CSS 和 JS，不包含任何内联样式或脚本：
+
+```html
+<link rel="stylesheet" href="css/style.css">
+
+<!-- JS 加载顺序严格：storage → todo → app -->
+<script src="js/storage.js"></script>
+<script src="js/todo.js"></script>
+<script src="js/app.js"></script>
+```
+
+页面关键元素：
+
+| 标签 | id | 作用 |
+|------|----|------|
+| `<input>` | `input` | 任务输入框 |
+| `<select>` | `prioritySelect` | 优先级选择（高/中/低） |
+| `<button>` | `addBtn` | 添加按钮 |
+| `<ul>` | `todoList` | 待办列表容器 |
+| `<span>` | `pendingCount` | 待完成数量 |
+| `<span>` | `doneCount` | 已完成数量 |
+| `<div>` | `hint` | 空输入错误提示 |
+| `<button>` | `clearBtn` | 清空已完成（有完成项时显示） |
+| `<button>` | `clearAllBtn` | 清空全部（有任务时显示） |
+
+---
+
+### css/style.css — 样式
+
+设计风格：简洁现代，蓝色调，圆角，阴影，响应式。
+
+关键样式对照：
+
+```css
+/* 背景渐变：浅蓝 → 浅紫 */
+body { background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%); }
+
+/* 白色卡片容器 */
+.container { border-radius: 16px; box-shadow: 0 8px 32px rgba(30,90,180,0.15); max-width: 540px; }
+
+/* 优先级颜色标识（左侧边框） */
+.todo-item.priority-high   { border-left-color: #e05050; }
+.todo-item.priority-medium { border-left-color: #f0a030; }
+.todo-item.priority-low    { border-left-color: #2d9f5e; }
+
+/* 编辑模式高亮 */
+.todo-item.editing { background: #fffbe6; border-left-color: #4a8cf7; }
+.todo-item .edit-input { border: 2px solid #4a8cf7; border-radius: 6px; }
+
+/* 操作按钮交互 */
+.edit-btn:hover { color: #4a8cf7; background: #e8f0fe; }
+.del-btn:hover  { color: #e05050; background: #ffe8e8; }
+```
+
+---
+
+### js/storage.js — 数据持久化层
+
+封装 `localStorage` 的读写，对外暴露 `Storage` 全局对象：
+
+```javascript
+const Storage = (function() {
+  const KEY = 'todos';
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch (e) { return []; }
+  }
+
+  function save(todos) {
+    localStorage.setItem(KEY, JSON.stringify(todos));
+  }
+
+  return { load, save };
+})();
+```
+
+---
+
+### js/todo.js — 业务逻辑层
+
+管理待办数据的**数组**，对外暴露 `TodoApp` 全局对象。内部维护 `_todos` 数组，外部只能通过暴露的方法操作。
+
+**数据格式：**
+
+```javascript
+{ text: "买牛奶", done: false, priority: "medium" }
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 任务内容 |
+| `done` | boolean | 是否已完成 |
+| `priority` | string | `"high"` / `"medium"` / `"low"` |
+
+**暴露的方法：**
+
+| 方法 | 说明 | 触发时机 |
+|------|------|---------|
+| `init()` | 从 Storage 加载数据 + 旧数据迁移（补 `priority`）+ 按优先级排序 | 页面加载 |
+| `getAll()` | 返回 `_todos` 数组引用 | render |
+| `add(text, priority)` | 追加新任务，按优先级排序后存盘 | 用户添加 |
+| `toggle(index)` | 切换 `done` 状态 | 点击复选框 |
+| `update(index, data)` | 修改 `text` 或 `priority` | 编辑保存 |
+| `remove(index)` | 从数组删除指定项 | 点击删除按钮 |
+| `clearDone()` | 过滤掉所有 `done=true` 的项 | 清空已完成 |
+| `clearAll()` | 重置为空数组 | 清空全部 |
+| `getStats()` | 返回 `{ total, pending, done }` | render |
+
+**排序规则：** `high`(0) → `medium`(1) → `low`(2)，每次 `add()` 和 `init()` 时执行。
+
+**关于代码风格：** 使用 `var` 而非 `let`/`const`，使用 `function` 表达式而非箭头函数，使用字符串拼接而非模板字符串，以兼容无构建工具的纯浏览器环境。
+
+---
+
+### js/app.js — 视图层
+
+操作 DOM、绑定事件、管理编辑状态，对外暴露 `App` 全局对象。内部使用 IIFE 模式封装私有变量。
+
+**核心数据结构：** `els` 对象缓存所有 DOM 引用，`editingIndex` 跟踪正在编辑的项。
+
+**render 函数**（每次数据变化时调用）：
+
+```javascript
+function render() {
+  // 1. 更新统计数字 + 按钮显隐
+  // 2. 空列表 → 友好提示（🎉 今天还没有任务哦～）
+  // 3. 遍历 todos 生成列表 HTML（带优先级 class、复选框、文字、编辑/删除按钮）
+  // 4. 编辑状态 → 聚焦到 edit-input
+}
+```
+
+**事件绑定清单：**
+
+```javascript
+els.addBtn.addEventListener('click', handleAdd);              // 点击添加
+els.input.addEventListener('keydown', enterHandler);           // 回车添加
+els.input.addEventListener('input', hideHint);                // 打字隐藏提示
+els.list.addEventListener('click', handleListClick);          // 复选/编辑/删除
+els.list.addEventListener('keydown', handleListKeydown);      // 编辑时 Enter/Esc
+els.clearBtn.addEventListener('click', handleClearDone);      // 清空已完成
+els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
+```
+
+**交互逻辑矩阵：**
+
+| 操作 | 行为 |
+|------|------|
+| 输入为空点添加 | 输入框变红 + 提示，2 秒消失 |
+| 点击 ✏️ | 文字变输入框，行变黄色 |
+| 编辑按 Enter | 保存文字 |
+| 编辑按 Esc | 取消修改 |
+| 点击复选框 | 切换 done（编辑时锁定） |
+| 清空全部 | `confirm()` 确认 |
+| 删除正在编辑的项 | 自动退出编辑，后续 index 修正 |
+
+---
+
+### 数据流（当前架构）
+
+```
+用户操作（点击/输入）
+       │
+       ▼
+  app.js（视图层）
+   ── 调用 TodoApp.xxx() ──►  todo.js（业务层）
+                                 ── 修改 _todos 数组
+                                 ── 调用 Storage.save() ──►  storage.js（数据层）
+                                                               ── 写入 localStorage
+  app.js（视图层）
+   ── render() 刷新页面 ◄── 取自 TodoApp.getAll()
+```
+
+核心循环：**用户操作 → 改数据 → 存仓库 → 刷新页面**。
+
+---
+
+## 后端设计（多设备共享方案）
+
+当前版本数据仅限浏览器本地。后端改造后方可多设备共享。
+
+### 整体架构
+
+```
+┌─────────────────┐      ┌──────────────────┐      ┌──────────────┐
+│  浏览器 (前端)    │─────▶│  后端 API 服务器  │─────▶│   数据库      │
+│  index.html      │ HTTP │  Node.js/Express │ SQL  │  PostgreSQL  │
+│  js/app.js       │◀─────│  /api/todos      │◀─────│  /  MySQL     │
+└─────────────────┘      └──────────────────┘      └──────────────┘
+```
+
+### 数据库表
+
+```sql
+CREATE TABLE users (
+  id       SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL
+);
+
+CREATE TABLE todos (
+  id         SERIAL PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id),
+  text       TEXT NOT NULL,
+  done       BOOLEAN NOT NULL DEFAULT false,
+  priority   TEXT NOT NULL DEFAULT 'medium'
+               CHECK (priority IN ('high', 'medium', 'low')),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### API 接口
+
+| 方法 | 路径 | 说明 | 需登录 |
+|------|------|------|--------|
+| `POST` | `/api/register` | 注册 | ❌ |
+| `POST` | `/api/login` | 登录，返回 JWT | ❌ |
+| `GET` | `/api/todos` | 获取当前用户所有待办 | ✅ |
+| `POST` | `/api/todos` | 新增一条 | ✅ |
+| `PUT` | `/api/todos/:id` | 修改文字/优先级 | ✅ |
+| `PATCH` | `/api/todos/:id/toggle` | 切换完成状态 | ✅ |
+| `DELETE` | `/api/todos/:id` | 删除一条 | ✅ |
+| `DELETE` | `/api/todos/done` | 清空已完成 | ✅ |
+| `DELETE` | `/api/todos/all` | 清空全部 | ✅ |
+
+### 前端改造清单
+
+| 文件 | 改动 |
+|------|------|
+| `js/storage.js` | **删除**，不再使用 `localStorage` |
+| `js/api.js` | **新建**，封装 `fetch`，自动带 JWT token |
+| `js/todo.js` | 方法改造为 `async`，调 `api.js` 而非 `Storage` |
+| `js/app.js` | 增加登录/注册 UI 和逻辑，保存 token |
+| `index.html` | 增加登录/注册表单 |
+
+### 改造后项目结构
+
+```
+index.html
+css/style.css
+js/
+  api.js          ← 新增 HTTP 请求层
+  todo.js         ← 改为异步 API 调用
+  app.js          ← 增加登录/注册
+storage.js        ← 删除
+server/
+  index.js        入口，Express
+  db.js           Prisma 客户端
+  auth.js         JWT 中间件
+  routes/
+    auth.js       注册/登录
+    todos.js      待办 CRUD
+```
+
+### 安全规则
+
+- 密码用 `bcrypt` 加密存储
+- JWT 设置 7 天过期
+- 强制 HTTPS
+- 每次请求校验 token，用户只能操作自己的 `user_id` 对应的数据
+- 前端的 API 地址通过配置而非硬编码，不暴露后端结构
