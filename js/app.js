@@ -33,6 +33,7 @@ const App = (function() {
     try {
       var result = await Api.login(username, password);
       localStorage.setItem('token', result.token);
+      localStorage.setItem('username', username);
       await TodoApp.init();
       showTodos();
       render();
@@ -52,6 +53,7 @@ const App = (function() {
     try {
       var result = await Api.register(username, password);
       localStorage.setItem('token', result.token);
+      localStorage.setItem('username', username);
       await TodoApp.init();
       showTodos();
       render();
@@ -75,6 +77,7 @@ const App = (function() {
     els.doneCount.textContent = stats.done;
 
     els.clearBtn.classList.toggle('show', stats.done > 0);
+    els.usernameDisplay.textContent = localStorage.getItem('username') || '';
     els.clearAllBtn.classList.toggle('show', todos.length > 0);
 
     if (todos.length === 0) {
@@ -273,6 +276,7 @@ const App = (function() {
     els.loginBtn = document.getElementById('loginBtn');
     els.registerBtn = document.getElementById('registerBtn');
     els.logoutBtn = document.getElementById('logoutBtn');
+    els.usernameDisplay = document.getElementById('usernameDisplay');
 
     var token = localStorage.getItem('token');
     if (token) {

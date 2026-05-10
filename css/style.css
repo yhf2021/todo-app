@@ -300,6 +300,18 @@ h1 {
 
 .todo-header h1 { margin-bottom: 0; }
 
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.username {
+  font-size: 13px;
+  color: #4a8cf7;
+  font-weight: 600;
+}
+
 .logout-btn {
   background: none;
   border: 1.5px solid #d0d9f0;
