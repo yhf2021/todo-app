@@ -100,6 +100,7 @@ const App = (function() {
 
       if (isEditing) {
         html += '<input class="edit-input" value="' + escapeHtml(t.text) + '" data-index="' + i + '" data-id="' + t.id + '">';
+        html += '<button class="save-btn" data-index="' + i + '" data-id="' + t.id + '" title="保存">💾</button>';
       } else {
         html += '<span class="text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</span>';
       }
@@ -209,6 +210,7 @@ const App = (function() {
     var checkbox = e.target.closest('input[type="checkbox"]');
     var delBtn = e.target.closest('.del-btn');
     var editBtn = e.target.closest('.edit-btn');
+    var saveBtn = e.target.closest('.save-btn');
 
     if (checkbox && editingIndex === null) {
       try {
@@ -234,6 +236,13 @@ const App = (function() {
         render();
       } catch (e) {
         if (!handleApiError(e)) alert('操作失败: ' + e.message);
+      }
+    }
+
+    if (saveBtn) {
+      var editInput = els.list.querySelector('.edit-input');
+      if (editInput) {
+        saveEdit(editingIndex, editInput.value, +saveBtn.dataset.id);
       }
     }
 
