@@ -34,9 +34,12 @@ const TodoApp = (function() {
   }
 
   async function toggle(id) {
-    await Api.toggleTodo(id);
+    var updated = await Api.toggleTodo(id);
     var todo = _todos.find(function(t) { return t.id === id; });
-    if (todo) todo.done = !todo.done;
+    if (todo) {
+      todo.done = updated.done;
+      todo.completedAt = updated.completedAt;
+    }
   }
 
   async function update(id, data) {

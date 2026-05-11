@@ -45,9 +45,13 @@ router.patch('/:id/toggle', async function(req, res) {
   if (!todo || todo.userId !== req.userId) {
     return res.status(404).json({ error: '未找到' });
   }
+  var newDone = !todo.done;
   var updated = await prisma.todo.update({
     where: { id: id },
-    data: { done: !todo.done }
+    data: {
+      done: newDone,
+      completedAt: newDone ? new Date() : null
+    }
   });
   res.json(updated);
 });

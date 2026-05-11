@@ -105,6 +105,11 @@ const App = (function() {
         html += '<button class="save-btn" data-index="' + i + '" data-id="' + t.id + '" title="保存">💾</button>';
       } else {
         html += '<span class="text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</span>';
+        if (t.done && t.completedAt) {
+          var d = new Date(t.completedAt);
+          var dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          html += '<span class="completed-date">完成于 ' + dateStr + '</span>';
+        }
       }
 
       html += '<button class="edit-btn" data-index="' + i + '" data-id="' + t.id + '" title="编辑">✏️</button>';
