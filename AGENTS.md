@@ -285,6 +285,31 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
 
 ---
 
+## 危险命令（需用户许可）
+
+以下命令可能造成数据丢失或服务中断，**不得自行执行**，必须先获得用户明确许可：
+
+| 命令 | 风险 |
+|------|------|
+| `git push --force` | 强制覆盖远程 Git 历史，可能导致提交丢失 |
+| `railway project delete` | 删除整个 Railway 项目，连带 Volume 数据 |
+| `railway volume delete` | 删除 Volume，持久化数据丢失 |
+| `rm -rf` 相关 | 删除本地文件或数据库 |
+
+使用示例（需用户确认后执行）：
+
+```bash
+# 强制推送（需要用户确认）
+git push --force
+
+# 删除 Railway 项目后重新部署
+railway project delete
+railway init
+railway up
+```
+
+---
+
 ## 后端设计（多设备共享方案）
 
 前后端代码已完整实现。启动服务器即可支持多设备共享。
