@@ -112,15 +112,15 @@ railway up
 
 Railway 默认重启后会清除本地文件，需要挂载 Volume 来持久化 SQLite 数据库。
 
-打开 Railway 网页控制台：
+```bash
+# 1. 创建 Volume，挂载到数据库目录
+railway volume add --mount-path /app/server/prisma
 
-1. 进入项目页面
-2. 左侧菜单 → **Volumes**
-3. 点击 **Add Volume**
-4. 填写：
-   - **Name**: `prisma-data`
-   - **Mount Path**: `server/prisma`
-5. 点击 **Create**
+# 2. 验证创建成功
+railway volume list
+```
+
+> 注意：挂载路径必须以 `/` 开头，且需与 Prisma 数据库文件的目录对应（即 `/app/server/prisma`）。Volume 会自动命名，可通过 `railway volume list` 查看。
 
 ### 6. 重新部署
 

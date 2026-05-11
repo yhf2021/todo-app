@@ -104,12 +104,14 @@ const App = (function() {
         html += '<input class="edit-input" value="' + escapeHtml(t.text) + '" data-index="' + i + '" data-id="' + t.id + '">';
         html += '<button class="save-btn" data-index="' + i + '" data-id="' + t.id + '" title="保存">💾</button>';
       } else {
+        html += '<div class="todo-text-wrap">';
         html += '<span class="text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</span>';
         if (t.done && t.completedAt) {
           var d = new Date(t.completedAt);
           var dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
           html += '<span class="completed-date">完成于 ' + dateStr + '</span>';
         }
+        html += '</div>';
       }
 
       html += '<button class="edit-btn" data-index="' + i + '" data-id="' + t.id + '" title="编辑">✏️</button>';
