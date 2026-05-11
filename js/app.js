@@ -78,6 +78,7 @@ const App = (function() {
 
     els.clearBtn.classList.toggle('show', stats.done > 0);
     els.usernameDisplay.textContent = localStorage.getItem('username') || '';
+    els.dateDisplay.textContent = new Date().toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
     els.clearAllBtn.classList.toggle('show', todos.length > 0);
 
     if (todos.length === 0) {
@@ -286,6 +287,7 @@ const App = (function() {
     els.registerBtn = document.getElementById('registerBtn');
     els.logoutBtn = document.getElementById('logoutBtn');
     els.usernameDisplay = document.getElementById('usernameDisplay');
+    els.dateDisplay = document.getElementById('dateDisplay');
 
     var token = localStorage.getItem('token');
     if (token) {
