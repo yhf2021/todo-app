@@ -322,8 +322,9 @@ h1 {
 }
 
 .date {
-  font-size: 12px;
-  color: #9aafcf;
+  font-size: 15px;
+  color: #f0a030;
+  font-weight: 600;
 }
 
 .username {
