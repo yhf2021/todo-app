@@ -78,7 +78,8 @@ const App = (function() {
 
     els.clearBtn.classList.toggle('show', stats.done > 0);
     els.usernameDisplay.textContent = localStorage.getItem('username') || '';
-    els.dateDisplay.textContent = new Date().toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+    var d = new Date();
+    els.dateDisplay.textContent = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     els.clearAllBtn.classList.toggle('show', todos.length > 0);
 
     if (todos.length === 0) {
