@@ -14,6 +14,7 @@
 | `railway project delete` | 删除整个 Railway 项目，连带 Volume 数据 |
 | `railway volume delete` | 删除 Volume，持久化数据丢失 |
 | `rm -rf` 相关 | 删除本地文件或数据库 |
+| `railway up` | 部署代码到 Railway，可能覆盖线上服务 |
 
 使用示例（需用户确认后执行）：
 
@@ -21,7 +22,10 @@
 # 强制推送（需要用户确认）
 git push --force
 
-# 删除 Railway 项目后重新部署
+# 部署到 Railway（需要用户确认）
+railway up
+
+# 删除 Railway 项目后重新部署（需要用户确认）
 railway project delete
 railway init
 railway up
