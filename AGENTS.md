@@ -4,6 +4,31 @@
 
 ---
 
+## ⚠️ 每次必须先阅读 — 危险命令（需用户许可）
+
+以下命令可能造成数据丢失或服务中断，**不得自行执行**，必须先获得用户明确许可：
+
+| 命令 | 风险 |
+|------|------|
+| `git push --force` | 强制覆盖远程 Git 历史，可能导致提交丢失 |
+| `railway project delete` | 删除整个 Railway 项目，连带 Volume 数据 |
+| `railway volume delete` | 删除 Volume，持久化数据丢失 |
+| `rm -rf` 相关 | 删除本地文件或数据库 |
+
+使用示例（需用户确认后执行）：
+
+```bash
+# 强制推送（需要用户确认）
+git push --force
+
+# 删除 Railway 项目后重新部署
+railway project delete
+railway init
+railway up
+```
+
+---
+
 ## 技术栈
 
 | 层 | 当前技术 | 说明 |
@@ -282,31 +307,6 @@ els.clearAllBtn.addEventListener('click', handleClearAll);    // 清空全部
 | 空状态提示 | `js/app.js` 中 `render()` 的 `empty-msg` |
 | 清空确认文案 | `js/app.js` 中 `handleClearAll` 的 `confirm(...)` |
 | 添加新功能 | 先在 `js/todo.js` 加函数，再到 `js/app.js` 调用 |
-
----
-
-## 危险命令（需用户许可）
-
-以下命令可能造成数据丢失或服务中断，**不得自行执行**，必须先获得用户明确许可：
-
-| 命令 | 风险 |
-|------|------|
-| `git push --force` | 强制覆盖远程 Git 历史，可能导致提交丢失 |
-| `railway project delete` | 删除整个 Railway 项目，连带 Volume 数据 |
-| `railway volume delete` | 删除 Volume，持久化数据丢失 |
-| `rm -rf` 相关 | 删除本地文件或数据库 |
-
-使用示例（需用户确认后执行）：
-
-```bash
-# 强制推送（需要用户确认）
-git push --force
-
-# 删除 Railway 项目后重新部署
-railway project delete
-railway init
-railway up
-```
 
 ---
 
